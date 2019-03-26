@@ -1,7 +1,7 @@
 Emerald
 -------
 
-a) Installing dependencies
+a) Installing dependencies:
 
 ```
 sudo apt install cmake
