@@ -22,7 +22,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
 
-c) Run Emerald
+c) Run Emerald:
 
 ```
 ./test/emerald
