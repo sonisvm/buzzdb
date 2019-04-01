@@ -3,8 +3,11 @@
 #include "utility.h"
 #include "database.h"
 #include "data_cube.h"
+#include "join.h"
 #include "scan.h"
 #include "summary_list.h"
+#include "interval_index.h"
+#include "string_field.h"
 #include "date_field.h"
 
 
@@ -26,10 +29,25 @@ namespace emerald {
                                                     db->getTableRef("Customer"), 
                                                     new Predicate("O_CUSTKEY", "=", "C_CUSTKEY")));
 
-        datacube = new DataCube(db, group_by_columns, join_conditions);
+        std::vector<int> table_1_tuples, table_2_tuples;
+        for(size_t i = 0; i < db->getTableRef("Orders")->size(); i++)
+        {
+            table_1_tuples.push_back(i);
+        }
+        
+        for(size_t i = 0; i < db->getTableRef("Customer")->size(); i++)
+        {
+            table_2_tuples.push_back(i);
+        }
+        
+        std::vector<std::vector<int>> tuples;
+        tuples.push_back(table_1_tuples);
+        tuples.push_back(table_2_tuples);
 
-        EXPECT_NE(datacube, nullptr);    
-        EXPECT_GT(datacube->get_dimensions().size(), 0); 
+        Table* joined_table = NestedLoopJoin(join_conditions, tuples);
+
+        datacube = new DataCube(db, joined_table, group_by_columns);
+
         EXPECT_GT(datacube->get_summary_table().size(), 0);
     }
 
@@ -72,6 +90,64 @@ namespace emerald {
 
     }
 
+    TEST(DatacubeTestSuite, ShouldCreateDatacubeWithIntervalIndex){
+        std::vector<std::string> group_by_columns;
+        group_by_columns.push_back("O_ORDERDATE");
+        group_by_columns.push_back("O_SHIPPRIORITY");
+
+        std::vector<JoinCondition*> join_conditions;
+        join_conditions.push_back(new JoinCondition(db->getTableRef("Orders"), 
+                                                    db->getTableRef("Customer"), 
+                                                    new Predicate("O_CUSTKEY", "=", "C_CUSTKEY")));
+
+        std::vector<int> table_1_tuples, table_2_tuples;
+        for(size_t i = 0; i < db->getTableRef("Orders")->size(); i++)
+        {
+            table_1_tuples.push_back(i);
+        }
+        
+        for(size_t i = 0; i < db->getTableRef("Customer")->size(); i++)
+        {
+            table_2_tuples.push_back(i);
+        }
+        
+        std::vector<std::vector<int>> tuples;
+        tuples.push_back(table_1_tuples);
+        tuples.push_back(table_2_tuples);
+
+        Table* joined_table = NestedLoopJoin(join_conditions, tuples);
+
+        std::vector<std::string> filter_columns;
+        filter_columns.push_back("C_MKTSEGMENT");
+
+        datacube = new DataCube(db, joined_table, group_by_columns, filter_columns);
+
+        EXPECT_NE(datacube, nullptr);
+        EXPECT_GT(datacube->get_summary_table().size(), 0);
+
+        int table_id = db->getTableRef("Customer")->get_table_id();
+        int column_id = db->getTable(table_id)->getTableDescriptor()->getColumnId("C_MKTSEGMENT");
+
+        EXPECT_EQ(static_cast<IntervalIndex*>(datacube->get_summary_table().begin()->second)->size(),5);
+
+        for(auto &entry : datacube->get_summary_table())
+        {
+            IntervalIndex* index = static_cast<IntervalIndex*>(entry.second);
+            int count =0;
+            for(auto &x : index->get_index())
+            {
+                std::string value = x.first.get_start();
+                count += x.second.size();
+                for(auto &tuple : x.second){
+                    int tuple_id = tuple->get_tuple_id(table_id);
+                    ASSERT_EQ(static_cast<StringField*>(db->get_field(table_id, tuple_id, column_id))->getValue(), value);
+                }
+            }
+            EXPECT_GT(count, 0);
+        }
+        
+    }
+
 }
 
 int main(int argc, char **argv) {
@@ -87,7 +163,7 @@ int main(int argc, char **argv) {
 
     //setup the database
     
-    createTables(db, file_name, emerald::Table::ROW_STORE);
+    createTables(db, file_name, emerald::Table::COLUMN_STORE);
     loadData(db, data_dir);
 
 

@@ -5,28 +5,28 @@ namespace emerald
 {
     class Interval {
         private:
-            int start_;
-            int end_;
+            std::string start_;
+            std::string end_;
             int size_;
         public:
             Interval();
-            Interval(int start, int end);
+            Interval(std::string start, std::string end);
             bool operator<(const Interval& interval) const;
-            bool operator==(const Interval& interval) const;
-            int get_start() const;
+            //bool operator==(const Interval& interval) const;
+            std::string get_start() const;
             void print() const;
-            int get_end() const;
+            std::string get_end() const;
             int get_size() const;
     };
 } // emerald
 
-namespace std{
-    template<> 
-    struct hash<emerald::Interval>{
-        std::size_t operator()(const emerald::Interval& interval) const {
-            return std::hash<int>()(interval.get_start()) ^ (std::hash<int>()(interval.get_end()) << 1);
-        }
-    };
-}
+// namespace std{
+//     template<> 
+//     struct hash<emerald::Interval>{
+//         std::size_t operator()(const emerald::Interval& interval) const {
+//             return std::hash<std::>()(interval.get_start()) ^ (std::hash<int>()(interval.get_end()) << 1);
+//         }
+//     };
+// }
 
 

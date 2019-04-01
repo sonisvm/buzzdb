@@ -5,9 +5,11 @@
 #include "string_field.h"
 #include "double_field.h"
 #include "date_field.h"
+#include "interval_index.h"
 #include "row_store.h"
 #include "tuple.h"
 #include "utility.h"
+#include "interval.h"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -125,4 +127,55 @@ namespace emerald {
         }
         
     }
+
+    std::map<Interval, std::vector<TupleSet*>> createIntervals(Column* column){
+        std::vector<Field*> fields = column->get_fields();
+
+        //bin size would be one
+        std::map<Interval, std::vector<TupleSet*>> intervals;
+        for(auto &field : fields)
+        {
+            std::string value = static_cast<StringField*>(field)->getValue();
+            Interval interval(value, value);
+            std::vector<TupleSet*> tmp;
+            if(intervals.find(interval)==intervals.end()){
+                intervals[interval] = tmp;
+            }
+        }
+        return intervals;
+
+    }
+
+    std::map<Interval, std::vector<TupleSet*>> CopyIntervals(std::map<Interval, std::vector<TupleSet*>> intervals){
+        std::map<Interval, std::vector<TupleSet*>> intervals_copy;
+        for(auto &entry : intervals)
+        {
+            Interval interval(entry.first.get_start(), entry.first.get_end());
+            std::vector<TupleSet*> tmp;
+            intervals_copy[interval] = tmp; 
+        }
+        return intervals_copy;
+    }
+
+    std::map<Dimension, Summary*> BuildIntervals(Database* db, std::map<Dimension, Summary*> summary_table, std::vector<ColumnDescriptor*> filter_columns){
+        // create the list of intervals based on the type of the field
+        ColumnStore* table = static_cast<ColumnStore*>(db->getTable(filter_columns[0]->get_table_id()));
+        std::map<Interval, std::vector<TupleSet*>> intervals = createIntervals(table->get_column(filter_columns[0]->get_column_id()));
+
+        for(auto &entry : summary_table)
+        {
+            std::map<Interval, std::vector<TupleSet*>> interval_index = CopyIntervals(intervals);
+            for(auto &tuple : static_cast<SummaryList*>(entry.second)->get_tuples()){
+                int tuple_id = tuple->get_tuple_id(filter_columns[0]->get_table_id());
+                std::string value = static_cast<StringField*>(db->get_field(filter_columns[0]->get_table_id(),tuple_id, filter_columns[0]->get_column_id()))->getValue();
+                Interval interval(value, value);
+                interval_index[interval].push_back(tuple);
+            }
+            IntervalIndex* index = new IntervalIndex();
+            index->append_index(interval_index);
+            summary_table[entry.first] = index;
+        }
+        return summary_table;
+    }
+
 } // emerald

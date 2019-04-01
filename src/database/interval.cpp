@@ -3,28 +3,28 @@
 
 namespace emerald
 {
-    Interval::Interval(int start, int end){
+    Interval::Interval(std::string start, std::string end){
         start_ = start;
         end_ = end;
-        size_ = end-start+1;
+        size_ = 1;
     }
 
     bool Interval::operator<(const Interval& interval) const{
         if(size_ != interval.get_size()){
             return size_ < interval.get_size();
-        } else if(start_ != interval.get_start()){
-            return start_ < interval.get_start();
+        } else if(start_.compare(interval.get_start()) != 0){
+            return start_.compare(interval.get_start()) < 0;
         } else {
-            return end_ < interval.get_end();
+            return end_.compare(interval.get_end()) < 0;
         }
         
     }
 
-    int Interval::get_start() const {
+    std::string Interval::get_start() const {
         return start_;
     }
 
-    int Interval::get_end() const {
+    std::string Interval::get_end() const {
         return end_;
     }
 
@@ -32,9 +32,9 @@ namespace emerald
         std::cout << "Start=" << start_ << ", End=" << end_;
     }
 
-    bool Interval::operator==(const Interval& interval) const{
-        return start_==interval.get_start() && end_==interval.get_end();
-    }
+    // bool Interval::operator==(const Interval& interval) const{
+    //     return start_==interval.get_start() && end_==interval.get_end();
+    // }
 
     int Interval::get_size() const {
         return size_;

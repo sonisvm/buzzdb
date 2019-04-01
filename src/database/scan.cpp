@@ -3,6 +3,7 @@
 #include "row_store.h"
 #include "column_store.h"
 #include "summary_list.h"
+#include "interval_index.h"
 #include <iostream>
 
 namespace emerald
@@ -31,6 +32,29 @@ namespace emerald
         return seqScanRowStore(static_cast<RowStore*>(table), columnIndex, predicate->getOp(), value);
 
     };
+
+    Summary* IntervalScan(IntervalIndex* index, std::vector<Predicate*> predicates){
+        SummaryList* result = new SummaryList();
+
+        //hardcoded for logical OR operation and string field
+        for(auto &entry : index->get_index()){
+            bool isMatch = false;
+            for(auto &predicate : predicates)
+            {
+                if(entry.first.get_start().compare(predicate->getValue())==0){
+                    isMatch = true;
+                    break;
+                }
+            }
+            if(isMatch){
+                for(auto &tuple : entry.second){
+                    result->add_tuple_set(tuple);
+                }
+            }
+            
+        }
+        return result;
+    }
 
     Summary* SummaryListScan(Database* db, SummaryList* tuple_list, std::vector<Predicate*> predicates, std::string logical_connector){
         SummaryList* result = new SummaryList();
@@ -109,6 +133,8 @@ namespace emerald
             Summary* filtered_tuples = nullptr;
             if(entry.second->get_type()==Summary::SUMMARY_LIST){
                 filtered_tuples = SummaryListScan(db, static_cast<SummaryList*>(entry.second), predicates, logical_connector);
+            } else if(entry.second->get_type() == Summary::SUMMARY_INTERVAL_INDEX){
+                filtered_tuples = IntervalScan(static_cast<IntervalIndex*>(entry.second), predicates);
             }
 
             if(filtered_tuples->size()>0){

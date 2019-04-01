@@ -1,6 +1,7 @@
 #include "data_cube.h"
 #include "join.h"
 #include "group.h"
+#include "utility.h"
 #include <iostream>
 
 namespace emerald
@@ -28,6 +29,35 @@ namespace emerald
     }
 
     //this constructor is used in column store implementation
+    DataCube::DataCube(Database* db, Table* joined_table, std::vector<std::string> group_by_columns, std::vector<std::string> filter_columns){
+        //get the column descriptors
+        TableDescriptor* table_desc = joined_table->getTableDescriptor();
+        std::vector<ColumnDescriptor*> column_descs;
+        
+        /*Get the table descriptor and find the column descriptor for each grouping column*/
+        for(auto &column : group_by_columns)
+        {
+            column_descs.push_back(table_desc->get_column(column));
+        }
+
+        std::vector<ColumnDescriptor*> filter_column_descs;
+
+        /* Get the table descriptor and find the column descriptor for each filtering column */
+        for(auto &column : filter_columns)
+        {
+            filter_column_descs.push_back(table_desc->get_column(column));
+        }
+
+        //set the dimensions used in this datacube
+        dimensions_ = column_descs;
+
+        //group the tuples by the grouping columns
+        std::map<Dimension, Summary*> tmp_table = OrderedGroup(db, joined_table, column_descs);
+
+        //creating intervals on the datacube
+        summary_table_ = BuildIntervals(db, tmp_table, filter_column_descs);
+    }
+
     DataCube::DataCube(Database* db, Table* joined_table, std::vector<std::string> group_by_columns){
         //get the column descriptors
         TableDescriptor* table_desc = joined_table->getTableDescriptor();

@@ -10,6 +10,7 @@
 #include "join_condition.h"
 #include "predicate.h"
 #include "row_store.h"
+#include "column_store.h"
 #include "scan.h"
 #include "order.h"
 #include <chrono>
@@ -26,6 +27,7 @@ namespace emerald {
         db = new Database();
         createTables(db, file_name, emerald::Table::COLUMN_STORE);
         loadData(db, data_dir);
+
     }
 
     void createDataCube(){
@@ -67,6 +69,47 @@ namespace emerald {
         EXPECT_GT(datacube->get_summary_table().size(), 0);
     }
 
+    void createDataCubeWithIntervals(){
+         std::vector<std::string> group_by_columns;
+        group_by_columns.push_back("O_ORDERDATE");
+        group_by_columns.push_back("O_SHIPPRIORITY");
+
+        std::vector<JoinCondition*> join_conditions;
+        join_conditions.push_back(new JoinCondition(db->getTableRef("Orders"), 
+                                                    db->getTableRef("Customer"), 
+                                                    new Predicate("O_CUSTKEY", "=", "C_CUSTKEY")));
+
+        std::vector<int> table_1_tuples, table_2_tuples;
+        for(size_t i = 0; i < db->getTableRef("Orders")->size(); i++)
+        {
+            table_1_tuples.push_back(i);
+        }
+        
+        for(size_t i = 0; i < db->getTableRef("Customer")->size(); i++)
+        {
+            table_2_tuples.push_back(i);
+        }
+        
+        std::vector<std::vector<int>> tuples;
+        tuples.push_back(table_1_tuples);
+        tuples.push_back(table_2_tuples);
+
+        auto start = std::chrono::high_resolution_clock::now();
+        Table* joined_table = NestedLoopJoin(join_conditions, tuples);
+        auto elapsed = std::chrono::high_resolution_clock::now() - start;
+
+        std::vector<std::string> filter_columns;
+        filter_columns.push_back("C_MKTSEGMENT");
+
+        start = std::chrono::high_resolution_clock::now();
+        datacube = new DataCube(db, joined_table, group_by_columns, filter_columns);
+        elapsed += std::chrono::high_resolution_clock::now() - start;
+        auto time_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
+        std::cout << "Datacube creation : " << time_milliseconds.count() << " ms \n";
+
+        EXPECT_GT(datacube->get_summary_table().size(), 0);
+    }
+
     void QueryOnDataCube(DataCube* dc){
         //PROJECT COLUMNS
         std::vector<emerald::ProjectionExpression*> selected_columns;
@@ -95,8 +138,6 @@ namespace emerald {
         
         std::cout << "Ordering took : " << time_milliseconds.count() << " ms \n";
 
-        time_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-        std::cout << "Query processing : " << time_milliseconds.count() << " ms \n";
 
         std::cout << ordered_result->size() << "\n";
         
@@ -226,7 +267,8 @@ namespace emerald {
 
     TEST(BenchmarkSuite, DataCube){
         createDB();
-        createDataCube();
+        //createDataCube();
+        createDataCubeWithIntervals();
 
         Query1();
         Query2();
@@ -292,8 +334,6 @@ namespace emerald {
         elapsed +=  std::chrono::high_resolution_clock::now() - start;
         std::cout << "Ordering took : " << time_milliseconds.count() << " ms \n";
         
-        time_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-        std::cout << "Query processing : " << time_milliseconds.count() << " ms \n";
 
         std::cout << ordered_result->size() << "\n";
         
@@ -420,15 +460,16 @@ namespace emerald {
         QueryOnTable(table_1_tuples, table_2_tuples);
     }
 
-    TEST(BenchmarkSuite, Table1){
+    // TEST(BenchmarkSuite, Table1){
+    //     createDB();
 
-        TableQuery1();
-        TableQuery2();
-        TableQuery3();
-        TableQuery4();
-        TableQuery5();
+    //     TableQuery1();
+    //     TableQuery2();
+    //     TableQuery3();
+    //     TableQuery4();
+    //     TableQuery5();
         
-    }
+    // }
 
 }
 

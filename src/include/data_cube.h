@@ -26,6 +26,8 @@ namespace emerald
                         std::vector<std::string> group_by_columns,  
                         std::vector<JoinCondition*> join_conditions);
 
+            DataCube(Database* db, Table* joined_table, std::vector<std::string> group_by_columns, std::vector<std::string> filter_columns);
+
             DataCube(Database* db, Table* joined_table, std::vector<std::string> group_by_columns);
 
             std::map<Dimension, Summary*> get_summary_table() const;

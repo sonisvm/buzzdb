@@ -3,6 +3,7 @@
 #include "database.h"
 #include "dimension.h"
 #include "summary.h"
+
 #include <string>
 #include <map>
 
@@ -15,5 +16,7 @@ namespace emerald {
     void loadData(Database* db, std::string data_dir);
 
     void printSummaryTable(std::map<Dimension, Summary*> groups);
+
+    std::map<Dimension, Summary*> BuildIntervals(Database* db, std::map<Dimension, Summary*> summary_table, std::vector<ColumnDescriptor*> filter_columns);
 
 } // emerald

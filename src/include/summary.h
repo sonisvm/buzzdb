@@ -7,7 +7,8 @@ namespace emerald {
         public:
             enum SummaryType {
                 SUMMARY_INDEX,
-                SUMMARY_LIST
+                SUMMARY_LIST,
+                SUMMARY_INTERVAL_INDEX
             };
 
             Summary(SummaryType type);

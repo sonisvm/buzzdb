@@ -6,13 +6,6 @@ file(GLOB SRC_FILES
     "database/*.cpp"
     "configuration.cpp"
     "types.cpp"
-    "zipfian.cpp"
-    "key_vector.cpp"
-    "inverted_index.cpp"
-    "interval.cpp"
-    "interval_index.cpp"
-    "benchmark.cpp"
-
 )
 
 # Create our library
