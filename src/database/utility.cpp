@@ -164,14 +164,14 @@ namespace emerald {
 
         for(auto &entry : summary_table)
         {
-            std::map<Interval, std::vector<TupleSet*>> interval_index = CopyIntervals(intervals);
+            IntervalIndex* index = new IntervalIndex();
+            std::map<Interval, std::vector<TupleSet*>> interval_index;
             for(auto &tuple : static_cast<SummaryList*>(entry.second)->get_tuples()){
                 int tuple_id = tuple->get_tuple_id(filter_columns[0]->get_table_id());
                 std::string value = static_cast<StringField*>(db->get_field(filter_columns[0]->get_table_id(),tuple_id, filter_columns[0]->get_column_id()))->getValue();
                 Interval interval(value, value);
                 interval_index[interval].push_back(tuple);
             }
-            IntervalIndex* index = new IntervalIndex();
             index->append_index(interval_index);
             summary_table[entry.first] = index;
         }

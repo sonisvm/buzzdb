@@ -128,7 +128,6 @@ namespace emerald {
         int table_id = db->getTableRef("Customer")->get_table_id();
         int column_id = db->getTable(table_id)->getTableDescriptor()->getColumnId("C_MKTSEGMENT");
 
-        EXPECT_EQ(static_cast<IntervalIndex*>(datacube->get_summary_table().begin()->second)->size(),5);
 
         for(auto &entry : datacube->get_summary_table())
         {
